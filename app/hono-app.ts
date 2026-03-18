@@ -8,8 +8,12 @@ app.get('/hello', (c) => {
   })
 })
 
-app.post('/github/user', async (c) => {
-  const { token } = await c.req.json()
+app.get('/github/user', async (c) => {
+  const token = c.req.query('token')?.trim()
+
+  if (!token) {
+    return c.json({ error: 'Missing token query parameter' }, 400)
+  }
 
   const res = await fetch('https://api.github.com/user', {
     headers: {
@@ -24,3 +28,5 @@ app.post('/github/user', async (c) => {
 
   return c.json(await res.json())
 })
+
+

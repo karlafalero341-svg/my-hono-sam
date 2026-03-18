@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card"
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -31,30 +30,49 @@ import {
 } from "@/components/ui/input-group"
 
 const formSchema = z.object({
-  title: z
+  token: z
     .string()
-    .min(5, "Bug title must be at least 5 characters.")
-    .max(32, "Bug title must be at most 32 characters."),
+    .min(5, "GitHub token must be at least 5 characters.")
+    .max(100, "GitHub token must be at most 100 characters."),
   description: z
     .string()
-    .min(20, "Description must be at least 20 characters.")
+    .min(2, "Description must be at least 2 characters.")
     .max(100, "Description must be at most 100 characters."),
 })
 
-export function BugReportForm() {
-  const form = useForm<z.infer<typeof formSchema>>({
+export function UserInfoForm() {
+  const form = useForm<z.input<typeof formSchema>, unknown, z.output<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
+      token: "",
       description: "",
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    toast("You submitted the following values:", {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    const searchParams = new URLSearchParams({
+      token: data.token,
+    })
+
+    const res = await fetch(`/api/github/user?${searchParams.toString()}`, {
+      method: "GET",
+    })
+
+    const payload = await res.json()
+
+    debugger
+
+    if (!res.ok) {
+      toast.error("GitHub request failed", {
+        description: payload.error ?? "Unable to fetch GitHub user information.",
+      })
+      return
+    }
+
+    toast.success("GitHub user loaded", {
       description: (
         <pre className="mt-2 w-[320px] overflow-x-auto rounded-md bg-code p-4 text-code-foreground">
-          <code>{JSON.stringify(data, null, 2)}</code>
+          <code>{JSON.stringify(payload, null, 2)}</code>
         </pre>
       ),
       position: "bottom-right",
@@ -70,27 +88,27 @@ export function BugReportForm() {
   return (
     <Card className="w-full sm:max-w-md">
       <CardHeader>
-        <CardTitle>Bug Report</CardTitle>
+        <CardTitle>Github User Information</CardTitle>
         <CardDescription>
-          Help us improve by reporting bugs you encounter.
+          Please provide your information so we can get in touch with you.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
           <FieldGroup>
             <Controller
-              name="title"
+              name="token"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="form-rhf-demo-title">
-                    Bug Title
+                    Github Token
                   </FieldLabel>
                   <Input
                     {...field}
                     id="form-rhf-demo-title"
                     aria-invalid={fieldState.invalid}
-                    placeholder="Login button not working on mobile"
+                    placeholder="Enter your GitHub token"
                     autoComplete="off"
                   />
                   {fieldState.invalid && (
@@ -122,10 +140,6 @@ export function BugReportForm() {
                       </InputGroupText>
                     </InputGroupAddon>
                   </InputGroup>
-                  <FieldDescription>
-                    Include steps to reproduce, expected behavior, and what
-                    actually happened.
-                  </FieldDescription>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
@@ -137,11 +151,16 @@ export function BugReportForm() {
       </CardContent>
       <CardFooter>
         <Field orientation="horizontal">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => form.reset()}
+            disabled={form.formState.isSubmitting}
+          >
             Reset
           </Button>
-          <Button type="submit" form="form-rhf-demo">
-            Submit
+          <Button type="submit" form="form-rhf-demo" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Submitting..." : "Submit"}
           </Button>
         </Field>
       </CardFooter>
