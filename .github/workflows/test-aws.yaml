@@ -26,3 +26,6 @@ jobs:
 
       - name: Verify region
         run: aws configure list
+
+      - name: Test CloudFormation access
+        run: aws cloudformation list-stacks
